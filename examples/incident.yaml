@@ -1,0 +1,37 @@
+---
+# Example Incident: triggered manually or by Prometheus/ArgoCD.
+# The operator will automatically send a WhatsApp alert to the current on-call
+# person with the three action buttons below.
+apiVersion: kubewa.dev/v1alpha1
+kind: Incident
+metadata:
+  name: api-high-latency-001
+  namespace: production
+spec:
+  title: "API gateway latency > 5s (P99)"
+  severity: critical
+  cluster: "prod-us-east-1"
+  namespace: production
+  onCallScheduleRef: platform-team
+  source: prometheus
+  sourceLabels:
+    alertname: "HighLatency"
+    service: "api-gateway"
+    env: "production"
+  remediationActions:
+    - name: rollback
+      type: RollbackDeployment
+      targetName: api-gateway
+      targetNamespace: production
+      approvalRequired: false
+    - name: scale-down
+      type: ScaleDeployment
+      targetName: api-gateway
+      targetNamespace: production
+      replicas: 1
+      approvalRequired: true
+    - name: restart
+      type: RestartDeployment
+      targetName: api-gateway
+      targetNamespace: production
+      approvalRequired: false

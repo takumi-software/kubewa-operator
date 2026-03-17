@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubewa-operator.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "kubewa-operator.labels" . | nindent 4 }}
+    control-plane: controller-manager
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kubewa-operator.selectorLabels" . | nindent 6 }}
+      control-plane: controller-manager
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "kubewa-operator.selectorLabels" . | nindent 8 }}
+        control-plane: controller-manager
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "kubewa-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: manager
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /manager
+          args:
+            - --metrics-bind-address={{ .Values.metrics.bindAddress }}
+            - --health-probe-bind-address={{ .Values.healthProbe.bindAddress }}
+            - --webhook-bind-address=:8082
+            {{- if .Values.webhook.publicURL }}
+            - --webhook-public-url={{ .Values.webhook.publicURL }}
+            {{- end }}
+            {{- if .Values.leaderElection }}
+            - --leader-elect
+            {{- end }}
+            {{- if .Values.security.allowedPhones }}
+            - --allowed-phones={{ .Values.security.allowedPhones }}
+            {{- end }}
+            {{- if .Values.ollama.enabled }}
+            - --ollama-url=http://localhost:11434
+            - --ollama-model={{ .Values.ollama.model }}
+            {{- end }}
+          env:
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubewa-operator.twilioSecretName" . }}
+                  key: accountSID
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubewa-operator.twilioSecretName" . }}
+                  key: authToken
+            - name: TWILIO_FROM_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubewa-operator.twilioSecretName" . }}
+                  key: fromNumber
+          ports:
+            - containerPort: 8080
+              name: metrics
+              protocol: TCP
+            - containerPort: 8081
+              name: health
+              protocol: TCP
+            - containerPort: 8082
+              name: webhook
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.ollama.enabled }}
+        - name: ollama
+          image: "{{ .Values.ollama.image.repository }}:{{ .Values.ollama.image.tag }}"
+          imagePullPolicy: {{ .Values.ollama.image.pullPolicy }}
+          ports:
+            - containerPort: 11434
+              name: ollama
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ollama.resources | nindent 12 }}
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama
+          readinessProbe:
+            httpGet:
+              path: /api/version
+              port: 11434
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.ollama.enabled }}
+      volumes:
+        - name: ollama-data
+          emptyDir: {}
+      {{- end }}
+      terminationGracePeriodSeconds: 10

@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kubewa-operator.fullname" . }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "kubewa-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webhook
+spec:
+  type: {{ .Values.webhook.serviceType }}
+  selector:
+    {{- include "kubewa-operator.selectorLabels" . | nindent 4 }}
+    control-plane: controller-manager
+  ports:
+    - name: webhook
+      port: {{ .Values.webhook.port }}
+      targetPort: webhook
+      protocol: TCP
+      {{- if and (eq .Values.webhook.serviceType "NodePort") .Values.webhook.nodePort }}
+      nodePort: {{ .Values.webhook.nodePort }}
+      {{- end }}

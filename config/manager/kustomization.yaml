@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubewa-system
+namePrefix: ""
+
+resources:
+  - manager.yaml
+  - webhook_service.yaml

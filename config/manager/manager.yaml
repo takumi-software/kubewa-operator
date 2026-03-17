@@ -1,0 +1,121 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubewa-operator
+  namespace: system
+  labels:
+    app.kubernetes.io/name: kubewa-operator
+    app.kubernetes.io/component: controller
+    control-plane: controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      serviceAccountName: kubewa-operator
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: ghcr.io/takumi-software/kubewa-operator:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /manager
+          args:
+            - --leader-elect
+            - --metrics-bind-address=:8080
+            - --health-probe-bind-address=:8081
+            - --webhook-bind-address=:8082
+          env:
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: kubewa-twilio-secret
+                  key: accountSID
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: kubewa-twilio-secret
+                  key: authToken
+            - name: TWILIO_FROM_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: kubewa-twilio-secret
+                  key: fromNumber
+            - name: OLLAMA_URL
+              value: "http://localhost:11434"
+            - name: OLLAMA_MODEL
+              value: "llama3"
+          ports:
+            - containerPort: 8080
+              name: metrics
+            - containerPort: 8081
+              name: health
+            - containerPort: 8082
+              name: webhook
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+        # Ollama sidecar for AI-powered remediation suggestions.
+        # Set DISABLE_OLLAMA_SIDECAR=true or remove this container if you prefer
+        # to use an external Ollama instance or skip AI features.
+        - name: ollama
+          image: ollama/ollama:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 11434
+              name: ollama
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama
+          readinessProbe:
+            httpGet:
+              path: /api/version
+              port: 11434
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+          securityContext:
+            allowPrivilegeEscalation: false
+      volumes:
+        - name: ollama-data
+          emptyDir: {}
+      terminationGracePeriodSeconds: 10
