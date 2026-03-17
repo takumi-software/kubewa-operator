@@ -1,0 +1,39 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubewa-operator-manager-role
+  labels:
+    app.kubernetes.io/name: kubewa-operator
+rules:
+  # CRD management
+  - apiGroups: ["kubewa.dev"]
+    resources: ["oncallschedules", "incidents"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["kubewa.dev"]
+    resources: ["oncallschedules/status", "incidents/status"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["kubewa.dev"]
+    resources: ["oncallschedules/finalizers", "incidents/finalizers"]
+    verbs: ["update"]
+  # Kubernetes Events (for audit trail)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  # Deployments and StatefulSets (for remediation actions)
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale", "statefulsets/scale"]
+    verbs: ["get", "update"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  # Leader election
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

@@ -1,0 +1,130 @@
+# Default values for kubewa-operator.
+# Override these values in your own values.yaml or via --set flags.
+
+# -- Number of operator replicas. Use 1 for the leader-election path.
+replicaCount: 1
+
+image:
+  # -- Container image repository.
+  repository: ghcr.io/takumi-software/kubewa-operator
+  # -- Image pull policy.
+  pullPolicy: IfNotPresent
+  # -- Image tag. Defaults to the chart appVersion.
+  tag: ""
+
+# -- Image pull secrets (if the registry is private).
+imagePullSecrets: []
+
+# -- Override the chart name.
+nameOverride: ""
+# -- Override the full name.
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Create a dedicated ServiceAccount.
+  create: true
+  # -- Annotations to add to the ServiceAccount.
+  annotations: {}
+  # -- Name of the ServiceAccount. Auto-generated if empty.
+  name: ""
+
+# -- Extra pod annotations.
+podAnnotations: {}
+
+# -- Pod security context.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container security context.
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  readOnlyRootFilesystem: true
+
+# -- Resource requests/limits for the manager container.
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# -- Node selector.
+nodeSelector: {}
+
+# -- Tolerations.
+tolerations: []
+
+# -- Affinity rules.
+affinity: {}
+
+# -- Namespace where the operator is deployed.
+namespace: kubewa-system
+
+# -- Enable leader election (recommended for production).
+leaderElection: true
+
+# Twilio configuration.
+twilio:
+  # -- Existing Secret name that contains accountSID, authToken and fromNumber keys.
+  # If set, the keys below are ignored.
+  existingSecret: ""
+  # -- Twilio Account SID (used if existingSecret is not set).
+  accountSID: ""
+  # -- Twilio Auth Token (used if existingSecret is not set).
+  authToken: ""
+  # -- Twilio WhatsApp from number in E.164 format with "whatsapp:" prefix
+  #    (e.g. "whatsapp:+14155238886").
+  fromNumber: ""
+
+# Webhook configuration.
+webhook:
+  # -- The public URL Twilio will POST incoming WhatsApp messages to.
+  # This is used for Twilio signature verification.
+  publicURL: ""
+  # -- Service type for the Twilio webhook endpoint.
+  serviceType: ClusterIP
+  # -- Service port.
+  port: 8082
+  # -- NodePort (only used when serviceType=NodePort).
+  nodePort: ""
+
+# Security.
+security:
+  # -- Comma-separated E.164 whitelist of phones allowed to interact via WhatsApp.
+  # Leave empty to allow any phone (not recommended for production).
+  allowedPhones: ""
+
+# AI / Ollama sidecar configuration.
+ollama:
+  # -- Enable the Ollama sidecar for AI-powered suggestions.
+  enabled: true
+  # -- Ollama image.
+  image:
+    repository: ollama/ollama
+    tag: latest
+    pullPolicy: IfNotPresent
+  # -- Ollama model to pull/use.
+  model: "llama3"
+  # -- Resource requests/limits for the Ollama sidecar.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+# Metrics.
+metrics:
+  # -- Bind address for Prometheus metrics.
+  bindAddress: ":8080"
+
+# Health probes.
+healthProbe:
+  # -- Bind address for liveness/readiness probes.
+  bindAddress: ":8081"

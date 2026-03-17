@@ -1,0 +1,24 @@
+apiVersion: v2
+name: kubewa-operator
+description: |
+  KubeWA Operator – the first Kubernetes WhatsApp Operator.
+  Converts WhatsApp (via Twilio) into a native, bidirectional interface for
+  Kubernetes incident management with AI-powered remediation suggestions.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - operator
+  - whatsapp
+  - twilio
+  - incident-management
+  - aiops
+  - chatops
+home: https://github.com/takumi-software/kubewa-operator
+sources:
+  - https://github.com/takumi-software/kubewa-operator
+maintainers:
+  - name: Takumi Software
+    url: https://github.com/takumi-software
+icon: https://raw.githubusercontent.com/takumi-software/kubewa-operator/main/docs/logo.png

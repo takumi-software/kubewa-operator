@@ -1,0 +1,25 @@
+---
+# Example OnCallSchedule: weekly rotation between three engineers.
+apiVersion: kubewa.dev/v1alpha1
+kind: OnCallSchedule
+metadata:
+  name: platform-team
+  namespace: kubewa-system
+spec:
+  rotation: weekly
+  timezone: "America/Sao_Paulo"
+  ackTimeout: "15m"
+  schedule:
+    - name: "Alice Silva"
+      phone: "+5511999990001"
+      email: "alice@example.com"
+    - name: "Bob Santos"
+      phone: "+5511999990002"
+      email: "bob@example.com"
+    - name: "Carlos Lima"
+      phone: "+5511999990003"
+      email: "carlos@example.com"
+  backup:
+    name: "Manager On-Call"
+    phone: "+5511999990000"
+    email: "oncall-manager@example.com"
